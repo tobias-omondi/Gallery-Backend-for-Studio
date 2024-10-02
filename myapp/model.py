@@ -2,12 +2,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-
 # Images table
 class Image(db.Model):
     __tablename__ = 'images'
-    id = db.Column(db.Integer, primary_key=True)  # Corrected: 'primary_key' should be lowercase
-    image_url = db.Column(db.Text, nullable=False)  # 'db.Text' should be capitalized
+    id = db.Column(db.Integer, primary_key=True)
+    image_url = db.Column(db.Text, nullable=False)
     title = db.Column(db.String(55), nullable=True)
     
     # Foreign key for reference to admin table
@@ -16,6 +15,16 @@ class Image(db.Model):
     # Relationship back to admin_user table
     admin_user = db.relationship('AdminUser', backref='images', lazy=True)
 
+    def __init__(self, image_url, title):
+        self.image_url = image_url
+        self.title = title
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "image_url": self.image_url,
+            "title": self.title
+        }
 
 # Videos table
 class Video(db.Model):
@@ -58,9 +67,9 @@ class Comment(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
     notification_id = db.Column(db.Integer, db.ForeignKey('notifications.id'), nullable=True)
 
-    # Relationships back to Notification and AdminUser tables
+    # Relationships back to AdminUser and Notification tables
     admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
-    notification = db.relationship('Notification', backref='comments', lazy=True)
+    notification = db.relationship('Notification', backref='comments_list', lazy=True)  # Change backref name
 
 
 # Notification table
@@ -69,7 +78,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Relationships back to Comment and AdminUser tables
-    comments = db.relationship('Comment', backref='notification', lazy=True)
+    comments = db.relationship('Comment', backref='notification_ref', lazy=True)  # Change backref name
 
 
 # Admin User table

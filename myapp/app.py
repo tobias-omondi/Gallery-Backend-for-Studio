@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
-from myapp.model import db  # Import db from models
+from flask_sqlalchemy import SQLAlchemy
+from myapp.model import db , Image # Import db from models
 
 app = Flask(__name__)
 
@@ -21,6 +22,35 @@ class HelloWorld(Resource):
         return {'hello': 'world'}
 
 api.add_resource(HelloWorld, '/')
+
+# api for images (crud) get, update, delete 
+
+class ImagesResource(Resource):
+
+    def post(self):
+        data = request.get_json()
+
+        image_url =data.get('image_url')
+        title = data.get('title')
+
+        if not image_url or not title:
+            return{"message": "Missing required Fields:image_url"}, 400
+        new_image = Image(image_url=image_url, title=title)
+
+        try:
+            db.session.add(new_image)
+            db.session.commit()
+            return{"message" :"Image posted Successfuly"}, 201
+        except Exception as e:
+            db.session.rollback()
+            return{"message" : f"An error occured: {str(e)}"}, 500
+
+
+    def get(self):
+        images = Image.query.all() #we are fetching all the images records
+        return jsonify([image.to_dict() for image in images]) 
+
+api.add_resource(ImagesResource, '/images')
 
 # Run the app
 if __name__ == '__main__':
