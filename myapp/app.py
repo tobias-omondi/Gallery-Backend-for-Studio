@@ -122,6 +122,59 @@ class VideosResources(Resource):
         videos = Video.query.all() # get all videos information
         return jsonify ([video.to_dict() for video in videos])
     
+    def put(self):
+        data = request.get_json() #retrival of all videos data in json
+
+        video_id = data.get('id')
+        video_url = data.get('video_url')
+        title = data.get('title')
+        description = data.get('description')
+
+        if not video_id:
+            return {"message":"Missing required field:'id'"},400
+        
+        video = Video.query.get(video_id)
+        if not video:
+            return{"message": "video not found"},404
+        
+        if video_url:
+            video.video_url = video_url
+        if title:
+            video.title = title
+        if description:
+            video.description = description
+
+        try:
+            db.session.commit()
+            return {"message": "video updated successfully", "video": video.to_dict()}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"An error occurred: {str(e)}"}, 500
+    
+
+    def delete(self):
+
+        data = request.get_json()
+        Video_id = data.get('id')
+
+        if not Video_id:
+            return{"message": "Missing field invalid"},400
+        
+        video = Video.query.get(Video_id)
+        if not video:
+            return{"message": "video not found"},404
+           
+        
+        try:
+            db.session.delete(video)
+            db.session.commit()
+            return{"message": f"video with id {Video_id} deleted successfuly"},201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"an error occured {str(e)} "}, 500
+        
+
+
 api.add_resource(VideosResources, '/videos')
 
 
