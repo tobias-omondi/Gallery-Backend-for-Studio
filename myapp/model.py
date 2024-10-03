@@ -40,7 +40,18 @@ class Video(db.Model):
     # Relationship back to admin_user table
     admin_user = db.relationship('AdminUser', backref='videos', lazy=True)
 
+    def __init__(self,video_url, title, description):
+        self.video_url = video_url
+        self.title = title
+        self.description = description
 
+    def to_dict(self):
+        return{
+            "id":self.id,
+            "video_url": self.video_url,
+            "title":self.title,
+            "description": self.description
+        }
 # Podcast table
 class Podcast(db.Model):
     __tablename__ = 'podcasts'
@@ -61,7 +72,7 @@ class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.Text, nullable=False)
-    posted_at = db.Column(db.String(255), nullable=False)  # Changed to String instead of Text for storing timestamp
+    posted_at = db.Column(db.String(255), nullable=False) 
     
     # Foreign key for reference to notification table and admin table
     admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
@@ -69,7 +80,7 @@ class Comment(db.Model):
 
     # Relationships back to AdminUser and Notification tables
     admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
-    notification = db.relationship('Notification', backref='comments_list', lazy=True)  # Change backref name
+    notification = db.relationship('Notification', backref='comments_list', lazy=True)  
 
 
 # Notification table
@@ -78,7 +89,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Relationships back to Comment and AdminUser tables
-    comments = db.relationship('Comment', backref='notification_ref', lazy=True)  # Change backref name
+    comments = db.relationship('Comment', backref='notification_popup', lazy=True)
 
 
 # Admin User table
