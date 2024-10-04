@@ -311,6 +311,38 @@ class CommentsResources(Resource):
 api.add_resource(CommentsResources, "/comments")
 
 
+class NotificationResources(Resource):
+
+    def get(self):
+        pass
+
+    def post(self):
+        pass
+    def update(self):
+        pass
+
+    def delete(self):
+        pass
+
+
+api.add_resource(NotificationResources, '/notfication')
+
+
+class AdminResources(Resource):
+
+    def post(self):
+        pass
+
+    def get(self):
+        pass
+
+    def put(self):
+        pass
+    def delete(self):
+        pass
+
+api.add_resource(AdminResources, '/admin')
+
 
 
 # Run the app
