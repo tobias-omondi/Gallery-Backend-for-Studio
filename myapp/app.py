@@ -2,7 +2,7 @@ from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from myapp.model import db , Image , Video , Podcast , Comment , Notification , AdminUser# Import db from models
+from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Import db from models
 
 app = Flask(__name__)
 
@@ -302,7 +302,7 @@ class CommentsResources(Resource):
         try:
             db.session.delete(comment)
             db.session.commit()
-            return {"Message": f"Comment {comment_id} successfully deleted"}, 203
+            return {"Message": f"Comment {comment_id} successfully deleted",}, 203
         except Exception as e:
             db.session.rollback()
             return {"Message": f"An error occurred: {str(e)}"}, 502
@@ -310,90 +310,81 @@ class CommentsResources(Resource):
 api.add_resource(CommentsResources, "/comments")
 
 
-class NotificationResources(Resource):
-
-    def get(self):
-        
-        notifacations = Notification.query.all()
-        return jsonify ([notifacation.to_dict() for notifacation in notifacations])
-
-    def post(self):
-        
-        data = request.get_json()
-
-        comments_message =data.get('comments_message')
-
-        if not comments_message:
-            return{"message": "notification not posted"}
-        
-        new_notifications = Notification (comments_message = comments_message)
-
-        try:
-            db.session.add(new_notifications)
-            db.session.commit()
-            return{"message": "Notification sent successfully"}, 200
-        except Exception as e:
-            db.session.rollback()
-            return{"message": f"an error occured {str(e)}"}, 500
-        
-    def put(self):
-        
-        data = request.get_json()
-
-        notification_id = data.get('id')
-        comments_message = data.get('comments_message')
-
-        if not notification_id:
-            return{"Message": "Missing Invalid key"}, 401
-        
-        notifications = Notification.query.get(notification_id)
-        if not notifications:
-            return{"Message": "Notfication not found"}
-        
-        if comments_message:
-            notifications.comments = comments_message
-
-        try:
-            db.session.commit()
-            return {"message": "notfications updated completly"}, 201
-        except Exception as e:
-            db.session.rollback
-            return {"message": f"an error occured {str(e)}"} , 500
-
-    def delete(self):
-        
-        data = request.get_json()
-
-        notification_id = data.get("id")
-
-        notification = Notification.query.get(notification_id)
-        if not notification_id:
-            return{"message": "Notfication not id not found"}
-        
-        try:
-            db.session.delete(notification)
-            db.session.commit()
-            return {"Message": f"notificans with id {notification_id} sent successfuly"},202
-        except Exception as e:
-            db.session.rollback()
-            return{"Message": f"an error occured {str(e)}"} , 500
-
-
-api.add_resource(NotificationResources, '/notification')
-
 
 class AdminResources(Resource):
-
     def post(self):
-        pass
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        is_admin = data.get('is_admin')
+
+        if not username or not password or is_admin is None:
+            return {"Message": "Missing field Invalid"}, 400
+
+        adminuser = AdminUser(username=username, password=password, is_admin=is_admin)
+
+        try:
+            db.session.add(adminuser)
+            db.session.commit()
+            return {"Message": "Admin created successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"Message": f"An error occurred: {str(e)}"}, 500
 
     def get(self):
-        pass
+        admin_users = AdminUser.query.all()
+        return jsonify([admin_user.to_dict() for admin_user in admin_users])  # Corrected here
 
     def put(self):
-        pass
+        
+        data = request.get_json()
+
+        adminuser_id = data.get('id')
+        username =data.get('username')
+        password = data.get('password')
+        is_admin = data.get('is_admin')
+
+        if not adminuser_id:
+            return{"Message": "Missing field Invalid"}
+        
+        admin = AdminUser.query.get(adminuser_id)
+        if not admin:
+            return {"Message": " Admin Not found"}
+        
+        if username:
+            admin.username = username
+        if password:
+            admin.password = password
+        if is_admin:
+            admin.is_admin = is_admin
+
+        try:
+            db.session.commit()
+            return {"Message" : " Admin created sucessfuly " "admin"} , 200
+        except Exception as e:
+            db.session.rollback()
+            return {f"An error occurred {str(e)}"} , 500
+
     def delete(self):
-        pass
+        data = request.get_json()  # Get the JSON data from the request
+        adminuser_id = data.get('id')
+        
+        if not adminuser_id:
+            return {"Message": "Missing required field: 'id'"}, 400
+            
+        admin_user = AdminUser.query.get(adminuser_id)
+        
+        if not admin_user:  # Check if the user exists
+          return {"Message": "Admin user not found"}, 404 
+        
+        try:
+            db.session.delete(admin_user)  # Delete the user
+            db.session.commit()
+            return {"Message": f"Admin user with id {adminuser_id} deleted successfully"}, 200
+        except Exception as e:
+            db.session.rollback()  # Rollback in case of error
+            return {"Message": f"An error occurred: {str(e)}"}, 500
+
 
 api.add_resource(AdminResources, '/admin')
 

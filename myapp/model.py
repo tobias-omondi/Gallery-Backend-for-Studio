@@ -40,18 +40,19 @@ class Video(db.Model):
     # Relationship back to admin_user table
     admin_user = db.relationship('AdminUser', backref='videos', lazy=True)
 
-    def __init__(self,video_url, title, description):
+    def __init__(self, video_url, title, description):
         self.video_url = video_url
         self.title = title
         self.description = description
 
     def to_dict(self):
-        return{
-            "id":self.id,
+        return {
+            "id": self.id,
             "video_url": self.video_url,
-            "title":self.title,
+            "title": self.title,
             "description": self.description
         }
+
 # Podcast table
 class Podcast(db.Model):
     __tablename__ = 'podcasts'
@@ -72,11 +73,11 @@ class Podcast(db.Model):
         self.description = description
 
     def to_dict(self):
-        return{
+        return {
             "id": self.id,
-            "audio_url":self.audio_url,
+            "audio_url": self.audio_url,
             "title": self.title,
-            "description":self.description
+            "description": self.description
         }
 
 # Comments table
@@ -86,13 +87,11 @@ class Comment(db.Model):
     message = db.Column(db.Text, nullable=False)
     posted_at = db.Column(db.String(255), nullable=False) 
     
-    # Foreign key for reference to notification table and admin table
+    # Foreign key for reference to admin table
     admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
-    notification_id = db.Column(db.Integer, db.ForeignKey('notifications.id'), nullable=True)
 
-    # Relationships back to AdminUser and Notification tables
+    # Relationships back to AdminUser table
     admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
-    notification = db.relationship('Notification', backref='comments_list', lazy=True)
 
     def __init__(self, message, posted_at, admin_id=None):
         self.message = message
@@ -106,23 +105,6 @@ class Comment(db.Model):
             "posted_at": self.posted_at,
             "admin_id": self.admin_id,
         }
-    
-
-# Notification table
-class Notification(db.Model):
-    __tablename__ = 'notifications'
-    id = db.Column(db.Integer, primary_key=True)
-
-    comments_message = db.relationship('Comment', backref='notification_popup', lazy=True)
-
-    def __init__(self, comments_message):
-        self.comments_message = comments_message
-
-    def to_dict(self):
-        return{
-            "id":self.id,
-            "comments_message": self.comments_message
-        }
 
 # Admin User table
 class AdminUser(db.Model):
@@ -131,9 +113,16 @@ class AdminUser(db.Model):
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(10), nullable=False)
     is_admin = db.Column(db.Boolean, default=True)
-    
-    # Foreign key reference to notifications table
-    notification_id = db.Column(db.Integer, db.ForeignKey('notifications.id'), nullable=True)
 
-    # Relationship back to Notification table
-    notification = db.relationship('Notification', backref='admin_users', lazy=True)
+    def __init__(self, username , password, is_admin):
+        self.username = username
+        self.password = password
+        self.is_admin = is_admin
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "password": self.password,
+            "is_admin": self.is_admin
+        }
