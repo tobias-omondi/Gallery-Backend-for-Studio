@@ -2,7 +2,7 @@ from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from myapp.model import db , Image , Video , Podcast # Import db from models
+from myapp.model import db , Image , Video , Podcast , Comment# Import db from models
 
 app = Flask(__name__)
 
@@ -259,6 +259,59 @@ class PodcastResources(Resource):
             return {"Message": f" an error occured {str(e)}"}, 500
 
 api.add_resource(PodcastResources , "/podcasts")
+
+
+# comment apis
+
+class CommentsResources(Resource):
+    def post(self):
+        data = request.get_json()
+        message = data.get('message')
+        posted_at = data.get('posted_at')
+        admin_id = data.get('admin_id')
+        notification_id = data.get('notification_id')
+
+        if not message or not posted_at:
+            return {"Message": "Message or posted date is missing"}, 400
+
+        new_comment = Comment( message=message, posted_at=posted_at, admin_id=admin_id, notification_id=notification_id  )
+
+        try:
+            db.session.add(new_comment)
+            db.session.commit()
+            return {"Message": "Message successfully sent"}, 202
+        except Exception as e:
+            db.session.rollback()
+            return {"Message": f"An error occurred: {str(e)}"}, 500
+
+    def get(self):
+        comments = Comment.query.all()
+        return jsonify([comment.to_dict() for comment in comments])
+
+    def delete(self):
+        data = request.get_json()  # Requesting for comments message
+        comment_id = data.get('id')
+
+        if not comment_id:
+            return {"Message": "Comment ID is required"}, 400
+
+        comment = Comment.query.get(comment_id)
+
+        if not comment:
+            return {"Message": "Comment not found"}, 404
+
+        try:
+            db.session.delete(comment)
+            db.session.commit()
+            return {"Message": f"Comment {comment_id} successfully deleted"}, 203
+        except Exception as e:
+            db.session.rollback()
+            return {"Message": f"An error occurred: {str(e)}"}, 502
+
+api.add_resource(CommentsResources, "/comments")
+
+
+
 
 # Run the app
 if __name__ == '__main__':

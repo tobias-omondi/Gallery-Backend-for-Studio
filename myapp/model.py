@@ -92,9 +92,24 @@ class Comment(db.Model):
 
     # Relationships back to AdminUser and Notification tables
     admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
-    notification = db.relationship('Notification', backref='comments_list', lazy=True)  
+    notification = db.relationship('Notification', backref='comments_list', lazy=True)
 
+    def __init__(self, message, posted_at, admin_id=None, notification_id=None):
+        self.message = message
+        self.posted_at = posted_at
+        self.admin_id = admin_id
+        self.notification_id = notification_id
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "message": self.message,
+            "posted_at": self.posted_at,
+            "admin_id": self.admin_id,
+            "notification_id": self.notification_id
+        }
+    
+    
 # Notification table
 class Notification(db.Model):
     __tablename__ = 'notifications'
