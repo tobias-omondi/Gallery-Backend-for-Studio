@@ -94,11 +94,10 @@ class Comment(db.Model):
     admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
     notification = db.relationship('Notification', backref='comments_list', lazy=True)
 
-    def __init__(self, message, posted_at, admin_id=None, notification_id=None):
+    def __init__(self, message, posted_at, admin_id=None):
         self.message = message
         self.posted_at = posted_at
         self.admin_id = admin_id
-        self.notification_id = notification_id
 
     def to_dict(self):
         return {
@@ -106,18 +105,24 @@ class Comment(db.Model):
             "message": self.message,
             "posted_at": self.posted_at,
             "admin_id": self.admin_id,
-            "notification_id": self.notification_id
         }
     
-    
+
 # Notification table
 class Notification(db.Model):
     __tablename__ = 'notifications'
     id = db.Column(db.Integer, primary_key=True)
 
-    # Relationships back to Comment and AdminUser tables
-    comments = db.relationship('Comment', backref='notification_popup', lazy=True)
+    comments_message = db.relationship('Comment', backref='notification_popup', lazy=True)
 
+    def __init__(self, comments_message):
+        self.comments_message = comments_message
+
+    def to_dict(self):
+        return{
+            "id":self.id,
+            "comments_message": self.comments_message
+        }
 
 # Admin User table
 class AdminUser(db.Model):

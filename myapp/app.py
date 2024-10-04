@@ -2,7 +2,7 @@ from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from myapp.model import db , Image , Video , Podcast , Comment# Import db from models
+from myapp.model import db , Image , Video , Podcast , Comment , Notification , AdminUser# Import db from models
 
 app = Flask(__name__)
 
@@ -269,12 +269,11 @@ class CommentsResources(Resource):
         message = data.get('message')
         posted_at = data.get('posted_at')
         admin_id = data.get('admin_id')
-        notification_id = data.get('notification_id')
 
         if not message or not posted_at:
             return {"Message": "Message or posted date is missing"}, 400
 
-        new_comment = Comment( message=message, posted_at=posted_at, admin_id=admin_id, notification_id=notification_id  )
+        new_comment = Comment( message=message, posted_at=posted_at, admin_id=admin_id  )
 
         try:
             db.session.add(new_comment)
@@ -314,18 +313,73 @@ api.add_resource(CommentsResources, "/comments")
 class NotificationResources(Resource):
 
     def get(self):
-        pass
+        
+        notifacations = Notification.query.all()
+        return jsonify ([notifacation.to_dict() for notifacation in notifacations])
 
     def post(self):
-        pass
-    def update(self):
-        pass
+        
+        data = request.get_json()
+
+        comments_message =data.get('comments_message')
+
+        if not comments_message:
+            return{"message": "notification not posted"}
+        
+        new_notifications = Notification (comments_message = comments_message)
+
+        try:
+            db.session.add(new_notifications)
+            db.session.commit()
+            return{"message": "Notification sent successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return{"message": f"an error occured {str(e)}"}, 500
+        
+    def put(self):
+        
+        data = request.get_json()
+
+        notification_id = data.get('id')
+        comments_message = data.get('comments_message')
+
+        if not notification_id:
+            return{"Message": "Missing Invalid key"}, 401
+        
+        notifications = Notification.query.get(notification_id)
+        if not notifications:
+            return{"Message": "Notfication not found"}
+        
+        if comments_message:
+            notifications.comments = comments_message
+
+        try:
+            db.session.commit()
+            return {"message": "notfications updated completly"}, 201
+        except Exception as e:
+            db.session.rollback
+            return {"message": f"an error occured {str(e)}"} , 500
 
     def delete(self):
-        pass
+        
+        data = request.get_json()
+
+        notification_id = data.get("id")
+
+        notification = Notification.query.get(notification_id)
+        if not notification_id:
+            return{"message": "Notfication not id not found"}
+        
+        try:
+            db.session.delete(notification)
+            db.session.commit()
+            return {"Message": f"notificans with id {notification_id} sent successfuly"},202
+        except Exception as e:
+            db.session.rollback()
+            return{"Message": f"an error occured {str(e)}"} , 500
 
 
-api.add_resource(NotificationResources, '/notfication')
+api.add_resource(NotificationResources, '/notification')
 
 
 class AdminResources(Resource):
