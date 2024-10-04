@@ -66,6 +66,18 @@ class Podcast(db.Model):
     # Relationship back to admin_user table
     admin_user = db.relationship('AdminUser', backref='podcasts', lazy=True)
 
+    def __init__(self, audio_url, title, description):
+        self.audio_url = audio_url
+        self.title = title
+        self.description = description
+
+    def to_dict(self):
+        return{
+            "id": self.id,
+            "audio_url":self.audio_url,
+            "title": self.title,
+            "description":self.description
+        }
 
 # Comments table
 class Comment(db.Model):

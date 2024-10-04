@@ -2,7 +2,7 @@ from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from myapp.model import db , Image , Video # Import db from models
+from myapp.model import db , Image , Video , Podcast # Import db from models
 
 app = Flask(__name__)
 
@@ -94,6 +94,8 @@ class imagesResource(Resource):
 api.add_resource(imagesResource, '/images')
 
 
+
+# apis for videos ....
 class VideosResources(Resource):
     def post(self):
 
@@ -178,6 +180,85 @@ class VideosResources(Resource):
 api.add_resource(VideosResources, '/videos')
 
 
+class PodcastResources(Resource):
+    def post(self):
+
+        # we are requestig the data from json
+        data = request.get_json()
+
+        audio_url = data.get('audio_url')
+        title = data.get('title')
+        description = data.get('description')
+
+        if not audio_url or not title or not description:
+            return{"message": "Missing invalid text ,'audio_url', 'title', 'description'"}
+        
+        new_podcast = Podcast(audio_url = audio_url , title = title , description = description)
+
+        try:
+            db.session.add(new_podcast)
+            db.session.commit()
+            return {"Message": "Podcast successfuly posted"},201
+        except Exception as e:
+            db.session.rollback()
+            return {"Message": f"an error occured {str(e)}"},500
+        
+    def get(self):
+        podcasts = Podcast.query.all()
+        return jsonify ([podcast.to_dict() for podcast in podcasts])
+    
+    def put(self):
+
+        data = request.get_json() # retrival of updates data
+
+        audio_id = data.get('id')
+        audio_url = data.get('audio_url')
+        title = data.get('title')
+        description = data.get('description')
+
+        if not audio_id:
+            return{"Message":"Missing field invalid"}, 404
+        
+        audio = Podcast.query.get(audio_id)
+        if not audio:
+            return{"message": "podcast not found"}
+        
+        if audio_url:
+            audio.audio_url = audio_url
+        if title:
+            audio.title = title
+        if description:
+            audio.description = description
+
+        try:
+            db.session.commit()
+            return {"message": "podcast updated successfully", "audio": audio.to_dict()}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"An error occurred: {str(e)}"}, 500
+        
+    def delete(self):
+
+        data = request.get_json()
+        audio_id =data.get('id')
+
+        if not audio_id:
+            return{"message": "Podcast does not exist"},404
+        
+        podcast_audio = Podcast.query.get(audio_id)
+        if not podcast_audio:
+            return {"Message": "podcast not found"}
+        
+        try:
+            db.session.delete(podcast_audio)
+            db.session.commit()
+            return{"Message": f"podcast with id {audio_id} deleted successfuly"}, 203
+        
+        except Exception as e:
+            db.session.rollbask()
+            return {"Message": f" an error occured {str(e)}"}, 500
+
+api.add_resource(PodcastResources , "/podcasts")
 
 # Run the app
 if __name__ == '__main__':
