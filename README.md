@@ -36,7 +36,7 @@ The studio app is built with restful api using flask and SQLAlchemy.This applica
     flask run
 
 # API END POINTS
-    Images
+### Images
 * POST /api/images: Add a new image.
 * GET /api/images: Get a list of all images.
 * PUT /api/images/<id>: Update an existing image.
