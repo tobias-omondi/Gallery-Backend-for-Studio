@@ -14,9 +14,9 @@ The studio app is built with restful api using flask and SQLAlchemy.This applica
 * Flask: A lightweight WSGI web application framework.
 * Flask SQLAlchemy:An ORM (Object Relational Mapper) for database interactions.
 * Flask Admin: For admin panel
-* Flask Login: admin creditionals & admin session managment
-* Flask- Restful: manage Apis
-* Flask- Bycrypt:for password hashing
+  ` Flask Login: admin creditionals & admin session managment
+- Flask- Restful: manage Apis
+- Flask- Bycrypt:for password hashing
 
 ## Installation
     git clone git@github.com:tobias-omondi/Gallery-Backend-for-Studio.git
