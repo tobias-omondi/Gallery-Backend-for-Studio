@@ -3,8 +3,11 @@ from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Import db from models
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
+
 
 # Set up database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Studio.db'
