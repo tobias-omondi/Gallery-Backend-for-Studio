@@ -189,11 +189,12 @@ class PodcastResources(Resource):
         audio_url = data.get('audio_url')
         title = data.get('title')
         description = data.get('description')
+        image_url = data.get('image_url')
 
         if not audio_url or not title or not description:
-            return{"message": "Missing invalid text ,'audio_url', 'title', 'description'"}
+            return{"message": "Missing invalid text ,'audio_url', 'title', 'description','image_url'"}
         
-        new_podcast = Podcast(audio_url = audio_url , title = title , description = description)
+        new_podcast = Podcast(audio_url = audio_url , title = title , description = description , image_url=image_url)
 
         try:
             db.session.add(new_podcast)

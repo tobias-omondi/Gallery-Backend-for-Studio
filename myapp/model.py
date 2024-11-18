@@ -60,6 +60,7 @@ class Podcast(db.Model):
     audio_url = db.Column(db.String(255), nullable=True)
     title = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    Image_url = db.Column(db.Text, nullable = True)
 
     # Foreign key for reference to admin table
     admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
@@ -67,17 +68,19 @@ class Podcast(db.Model):
     # Relationship back to admin_user table
     admin_user = db.relationship('AdminUser', backref='podcasts', lazy=True)
 
-    def __init__(self, audio_url, title, description):
+    def __init__(self, audio_url, title, description, image_url):
         self.audio_url = audio_url
         self.title = title
         self.description = description
+        self.Image_url = image_url
 
     def to_dict(self):
         return {
             "id": self.id,
             "audio_url": self.audio_url,
             "title": self.title,
-            "description": self.description
+            "description": self.description,
+            "image_url": self.Image_url
         }
 
 # Comments table
