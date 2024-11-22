@@ -14,7 +14,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Studio.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize the database and Flask-Migrate
-db.init_app(app)  # Initialize db with app
+db.init_app(app)  # Initialize db with 
 migrate = Migrate(app, db)
 
 api = Api(app)
