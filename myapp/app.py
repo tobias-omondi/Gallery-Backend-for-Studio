@@ -6,12 +6,13 @@ from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Impo
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+CORS(app)
 
 
 # Set up database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Studio.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+CORS(app, origins=["https://studio-app-nine.vercel.app/"])
 
 # Initialize the database and Flask-Migrate
 db.init_app(app)  # Initialize db with 
