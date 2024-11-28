@@ -1,6 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from functools import wraps
 
 db = SQLAlchemy()
+bcrypt = Bcrypt()
 
 # Images table
 class Image(db.Model):
@@ -114,18 +117,32 @@ class AdminUser(db.Model):
     __tablename__ = 'admin_user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
-    password = db.Column(db.String(10), nullable=False)
+    password = db.Column(db.String(70), nullable=False)
     is_admin = db.Column(db.Boolean, default=True)
 
-    def __init__(self, username , password, is_admin):
+    def __init__(self, username , password, is_admin = True):
         self.username = username
-        self.password = password
+        self.password = bcrypt.generate_password_hash(password).decode("utf-8") # we are hashing the password
         self.is_admin = is_admin
 
     def to_dict(self):
         return {
             "id": self.id,
             "username": self.username,
-            "password": self.password,
             "is_admin": self.is_admin
         }
+    # during login session to authenticate
+    def check_password(self,password):
+        return bcrypt.check_password_hash(self.password,password)
+    
+    def admin_required(f):
+        @wraps(f)
+        def decorated_function(*args, ** Kwargs):
+
+            auth_token = request.headers.get('Authorization')
+            if not auth_token or not validate_token(auth_token):
+             return jsonify ({"Message": "Admin authentication required"}), 404
+            
+            return f(*args, **Kwargs)
+
+            return decorated_function

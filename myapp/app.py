@@ -4,9 +4,13 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Import db from models
 from flask_cors import CORS
+from flask_bcrypt import Bcrypt
+from functools import wraps
 
 app = Flask(__name__)
 CORS(app)
+# Initialize Bcrypt
+bcrypt = Bcrypt()
 
 
 # Set up database configuration
@@ -19,6 +23,8 @@ db.init_app(app)  # Initialize db with
 migrate = Migrate(app, db)
 
 api = Api(app)
+
+
 
 # Define a HelloWorld resource
 class HelloWorld(Resource):
@@ -321,12 +327,16 @@ class AdminResources(Resource):
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-        is_admin = data.get('is_admin')
+        is_admin = data.get('is_admin',True)
 
         if not username or not password or is_admin is None:
             return {"Message": "Missing field Invalid"}, 400
+        
+        # hash password before creating the user
+        
+        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
 
-        adminuser = AdminUser(username=username, password=password, is_admin=is_admin)
+        adminuser = AdminUser(username=username, password=hashed_password, is_admin=is_admin)
 
         try:
             db.session.add(adminuser)
@@ -335,10 +345,10 @@ class AdminResources(Resource):
         except Exception as e:
             db.session.rollback()
             return {"Message": f"An error occurred: {str(e)}"}, 500
-
+        
     def get(self):
         admin_users = AdminUser.query.all()
-        return jsonify([admin_user.to_dict() for admin_user in admin_users])  # Corrected here
+        return jsonify([admin_user.to_dict() for admin_user in admin_users])
 
     def put(self):
         
@@ -359,7 +369,7 @@ class AdminResources(Resource):
         if username:
             admin.username = username
         if password:
-            admin.password = password
+            admin.password = bcrypt.generate_password_hash(password).decode("utf-8")
         if is_admin:
             admin.is_admin = is_admin
 
@@ -392,6 +402,31 @@ class AdminResources(Resource):
 
 
 api.add_resource(AdminResources, '/admin')
+
+
+class LoginResource(Resource):
+    def post(self):
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return {"Message": "Missing username or password"}, 400
+        
+        # Query the user by username
+        admin_user = AdminUser.query.filter_by(username=username).first()
+        
+        if not admin_user:
+            return {"Message": "Invalid username or password"}, 401
+        
+        # Check if the provided password matches the hashed password
+        if bcrypt.check_password_hash(admin_user.password, password):
+            return {"Message": "Login successful", "user": admin_user.to_dict()}, 200
+        else:
+            return {"Message": "Invalid username or password"}, 401
+
+# Add resource to API
+api.add_resource(LoginResource, '/login')
 
 
 
