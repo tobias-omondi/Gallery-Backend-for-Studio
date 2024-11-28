@@ -5,7 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Import db from models
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import create_access_token, get_jwt_identity , jwt_required ,  JWTManager
+import os
 from functools import wraps
+
+
 
 app = Flask(__name__)
 CORS(app)
@@ -17,29 +21,38 @@ bcrypt = Bcrypt()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Studio.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(app, origins=["https://studio-app-nine.vercel.app/"])
-
-# Initialize the database and Flask-Migrate
-db.init_app(app)  # Initialize db with 
+# intializing Jwt
+app.config ['JWT_SECRET_KEY'] = os.getenv ("my_secret_key")
+jwt = JWTManager(app)
+db.init_app(app) 
 migrate = Migrate(app, db)
 
 api = Api(app)
 
-
-
-# Define a HelloWorld resource
 class HelloWorld(Resource):
     def get(self):
         return {'hello': 'world'}
 
 api.add_resource(HelloWorld, '/')
 
-# api for images (crud) get, update, delete 
 
-class imagesResource(Resource):
-    def get(self):
-        images = Image.query.all()
-        return jsonify([image.to_dict() for image in images])
-    
+
+# A decorator to check if the current user is an admin
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        current_user = get_jwt_identity()
+        # Check if the user is an admin (this assumes the `is_admin` field exists in the AdminUser model)
+        admin = AdminUser.query.filter_by(username=current_user).first()
+        if not admin or not admin.is_admin:
+            return {"message": "Permission denied. Admins only."}, 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+# Example: Protecting the POST, PUT, and DELETE methods
+class ImagesResource(Resource):
+    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json()
         image_url = data.get('image_url')
@@ -57,6 +70,83 @@ class imagesResource(Resource):
             db.session.rollback()
             return {"message": f"An error occurred: {str(e)}"}, 500
 
+    @jwt_required()
+    @admin_required
+    def put(self):
+        data = request.get_json()
+        image_id = data.get('id')
+        image_url = data.get('image_url')
+        title = data.get('title')
+
+        if not image_id:
+            return {"message": "Missing required field: 'id'"}, 400
+
+        image = Image.query.get(image_id)
+        if not image:
+            return {"message": "Image not found"}, 404
+
+        if image_url:
+            image.image_url = image_url
+        if title:
+            image.title = title
+
+        try:
+            db.session.commit()
+            return {"message": "Image updated successfully", "image": image.to_dict()}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"An error occurred: {str(e)}"}, 500
+
+    @jwt_required()
+    @admin_required
+    def delete(self):
+        data = request.get_json()
+        image_id = data.get('id')
+
+        if not image_id:
+            return {"message": "Missing required field: 'id'"}, 400
+
+        image = Image.query.get(image_id)
+        if not image:
+            return {"message": "Image not found"}, 404
+
+        try:
+            db.session.delete(image)
+            db.session.commit()
+            return {"message": f"Image with id {image_id} deleted successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"An error occurred: {str(e)}"}, 500
+
+
+# api for images (crud) get, update, delete 
+
+class imagesResource(Resource):
+    def get(self):
+        images = Image.query.all()
+        return jsonify([image.to_dict() for image in images])
+    
+    @jwt_required()
+    @admin_required
+    def post(self):
+        data = request.get_json()
+        image_url = data.get('image_url')
+        title = data.get('title')
+
+        if not image_url or not title:
+            return {"message": "Missing required fields: image_url, title"}, 400
+
+        new_image = Image(image_url=image_url, title=title)
+        try:
+            db.session.add(new_image)
+            db.session.commit()
+            return {"message": "Image posted successfully"}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"An error occurred: {str(e)}"}, 500
+        
+    @jwt_required()
+    @admin_required
     def put(self):
         data = request.get_json()
         image_id = data.get('id')
@@ -82,6 +172,9 @@ class imagesResource(Resource):
             db.session.rollback()
             return {"message": f"An error occurred: {str(e)}"}, 500
         
+
+    @jwt_required()
+    @admin_required    
     def delete(self):
         data = request.get_json()
         image_id = data.get('id')
@@ -107,6 +200,10 @@ api.add_resource(imagesResource, '/images')
 
 # apis for videos ....
 class VideosResources(Resource):
+
+
+    @jwt_required()
+    @admin_required
     def post(self):
 
         # used to request our data
@@ -134,6 +231,9 @@ class VideosResources(Resource):
         videos = Video.query.all() # get all videos information
         return jsonify ([video.to_dict() for video in videos])
     
+
+    @jwt_required()
+    @admin_required
     def put(self):
         data = request.get_json() #retrival of all videos data in json
 
@@ -163,7 +263,8 @@ class VideosResources(Resource):
             db.session.rollback()
             return {"message": f"An error occurred: {str(e)}"}, 500
     
-
+    @jwt_required()
+    @admin_required
     def delete(self):
 
         data = request.get_json()
@@ -191,6 +292,9 @@ api.add_resource(VideosResources, '/videos')
 
 
 class PodcastResources(Resource):
+
+    @jwt_required()
+    @admin_required
     def post(self):
 
         # we are requestig the data from json
@@ -218,6 +322,9 @@ class PodcastResources(Resource):
         podcasts = Podcast.query.all()
         return jsonify ([podcast.to_dict() for podcast in podcasts])
     
+
+    @jwt_required()
+    @admin_required
     def put(self):
 
         data = request.get_json() # retrival of updates data
@@ -248,6 +355,9 @@ class PodcastResources(Resource):
             db.session.rollback()
             return {"message": f"An error occurred: {str(e)}"}, 500
         
+
+    @jwt_required()
+    @admin_required
     def delete(self):
 
         data = request.get_json()
@@ -323,6 +433,9 @@ api.add_resource(CommentsResources, "/comments")
 
 
 class AdminResources(Resource):
+
+    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json()
         username = data.get('username')
@@ -350,8 +463,10 @@ class AdminResources(Resource):
         admin_users = AdminUser.query.all()
         return jsonify([admin_user.to_dict() for admin_user in admin_users])
 
+
+    @jwt_required()
+    @admin_required
     def put(self):
-        
         data = request.get_json()
 
         adminuser_id = data.get('id')
@@ -379,7 +494,8 @@ class AdminResources(Resource):
         except Exception as e:
             db.session.rollback()
             return {f"An error occurred {str(e)}"} , 500
-
+    @jwt_required()
+    @admin_required
     def delete(self):
         data = request.get_json()  # Get the JSON data from the request
         adminuser_id = data.get('id')
@@ -416,15 +532,12 @@ class LoginResource(Resource):
         # Query the user by username
         admin_user = AdminUser.query.filter_by(username=username).first()
         
-        if not admin_user:
-            return {"Message": "Invalid username or password"}, 401
-        
-        # Check if the provided password matches the hashed password
-        if bcrypt.check_password_hash(admin_user.password, password):
-            return {"Message": "Login successful", "user": admin_user.to_dict()}, 200
-        else:
-            return {"Message": "Invalid username or password"}, 401
+        if not admin_user and bcrypt.check_password_hash(admin_user.password,password):
+            # generate JWT tokens
 
+            access_token = create_access_token(identity = username)
+            return {"Message": "Login successfuly", "access_token": access_token} , 200
+        return{"message": "Invalid Credentials"} , 401
 # Add resource to API
 api.add_resource(LoginResource, '/login')
 
