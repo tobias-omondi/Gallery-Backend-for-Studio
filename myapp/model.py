@@ -56,61 +56,6 @@ class Video(db.Model):
             "description": self.description
         }
 
-# Podcast table
-class Podcast(db.Model):
-    __tablename__ = 'podcasts'
-    id = db.Column(db.Integer, primary_key=True)
-    audio_url = db.Column(db.String(255), nullable=True)
-    title = db.Column(db.String(50), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    Image_url = db.Column(db.Text, nullable = True)
-
-    # Foreign key for reference to admin table
-    admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
-
-    # Relationship back to admin_user table
-    admin_user = db.relationship('AdminUser', backref='podcasts', lazy=True)
-
-    def __init__(self, audio_url, title, description, image_url):
-        self.audio_url = audio_url
-        self.title = title
-        self.description = description
-        self.Image_url = image_url
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "audio_url": self.audio_url,
-            "title": self.title,
-            "description": self.description,
-            "image_url": self.Image_url
-        }
-
-# Comments table
-class Comment(db.Model):
-    __tablename__ = 'comments'
-    id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.Text, nullable=False)
-    posted_at = db.Column(db.String(255), nullable=False) 
-    
-    # Foreign key for reference to admin table
-    admin_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
-
-    # Relationships back to AdminUser table
-    admin_user = db.relationship('AdminUser', backref='comments', lazy=True)
-
-    def __init__(self, message, posted_at, admin_id=None):
-        self.message = message
-        self.posted_at = posted_at
-        self.admin_id = admin_id
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "message": self.message,
-            "posted_at": self.posted_at,
-            "admin_id": self.admin_id,
-        }
 
 # Admin User table
 class AdminUser(db.Model):
@@ -135,14 +80,3 @@ class AdminUser(db.Model):
     def check_password(self,password):
         return bcrypt.check_password_hash(self.password,password)
     
-    def admin_required(f):
-        @wraps(f)
-        def decorated_function(*args, ** Kwargs):
-
-            auth_token = request.headers.get('Authorization')
-            if not auth_token or not validate_token(auth_token):
-             return jsonify ({"Message": "Admin authentication required"}), 404
-            
-            return f(*args, **Kwargs)
-
-            return decorated_function

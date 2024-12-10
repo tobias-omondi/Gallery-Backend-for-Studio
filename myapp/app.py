@@ -2,7 +2,7 @@ from flask import Flask , request , jsonify
 from flask_restful import Api ,Resource
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from myapp.model import db , Image , Video , Podcast , Comment , AdminUser# Import db from models
+from myapp.model import db , Image , Video , AdminUser# Import db from models
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, get_jwt_identity , jwt_required ,  JWTManager
@@ -291,234 +291,95 @@ class VideosResources(Resource):
 api.add_resource(VideosResources, '/videos')
 
 
-class PodcastResources(Resource):
-
-    @jwt_required()
-    @admin_required
-    def post(self):
-
-        # we are requestig the data from json
-        data = request.get_json()
-
-        audio_url = data.get('audio_url')
-        title = data.get('title')
-        description = data.get('description')
-        image_url = data.get('image_url')
-
-        if not audio_url or not title or not description:
-            return{"message": "Missing invalid text ,'audio_url', 'title', 'description','image_url'"}
-        
-        new_podcast = Podcast(audio_url = audio_url , title = title , description = description , image_url=image_url)
-
-        try:
-            db.session.add(new_podcast)
-            db.session.commit()
-            return {"Message": "Podcast successfuly posted"},201
-        except Exception as e:
-            db.session.rollback()
-            return {"Message": f"an error occured {str(e)}"},500
-        
-    def get(self):
-        podcasts = Podcast.query.all()
-        return jsonify ([podcast.to_dict() for podcast in podcasts])
-    
-
-    @jwt_required()
-    @admin_required
-    def put(self):
-
-        data = request.get_json() # retrival of updates data
-
-        audio_id = data.get('id')
-        audio_url = data.get('audio_url')
-        title = data.get('title')
-        description = data.get('description')
-
-        if not audio_id:
-            return{"Message":"Missing field invalid"}, 404
-        
-        audio = Podcast.query.get(audio_id)
-        if not audio:
-            return{"message": "podcast not found"}
-        
-        if audio_url:
-            audio.audio_url = audio_url
-        if title:
-            audio.title = title
-        if description:
-            audio.description = description
-
-        try:
-            db.session.commit()
-            return {"message": "podcast updated successfully", "audio": audio.to_dict()}, 200
-        except Exception as e:
-            db.session.rollback()
-            return {"message": f"An error occurred: {str(e)}"}, 500
-        
-
-    @jwt_required()
-    @admin_required
-    def delete(self):
-
-        data = request.get_json()
-        audio_id =data.get('id')
-
-        if not audio_id:
-            return{"message": "Podcast does not exist"},404
-        
-        podcast_audio = Podcast.query.get(audio_id)
-        if not podcast_audio:
-            return {"Message": "podcast not found"}
-        
-        try:
-            db.session.delete(podcast_audio)
-            db.session.commit()
-            return{"Message": f"podcast with id {audio_id} deleted successfuly"}, 203
-        
-        except Exception as e:
-            db.session.rollbask()
-            return {"Message": f" an error occured {str(e)}"}, 500
-
-api.add_resource(PodcastResources , "/podcasts")
-
-
-# comment apis
-
-class CommentsResources(Resource):
-    def post(self):
-        data = request.get_json()
-        message = data.get('message')
-        posted_at = data.get('posted_at')
-        admin_id = data.get('admin_id')
-
-        if not message or not posted_at:
-            return {"Message": "Message or posted date is missing"}, 400
-
-        new_comment = Comment( message=message, posted_at=posted_at, admin_id=admin_id  )
-
-        try:
-            db.session.add(new_comment)
-            db.session.commit()
-            return {"Message": "Message successfully sent"}, 202
-        except Exception as e:
-            db.session.rollback()
-            return {"Message": f"An error occurred: {str(e)}"}, 500
-
-    def get(self):
-        comments = Comment.query.all()
-        return jsonify([comment.to_dict() for comment in comments])
-
-    def delete(self):
-        data = request.get_json()  # Requesting for comments message
-        comment_id = data.get('id')
-
-        if not comment_id:
-            return {"Message": "Comment ID is required"}, 400
-
-        comment = Comment.query.get(comment_id)
-
-        if not comment:
-            return {"Message": "Comment not found"}, 404
-
-        try:
-            db.session.delete(comment)
-            db.session.commit()
-            return {"Message": f"Comment {comment_id} successfully deleted",}, 203
-        except Exception as e:
-            db.session.rollback()
-            return {"Message": f"An error occurred: {str(e)}"}, 502
-
-api.add_resource(CommentsResources, "/comments")
-
-
-
 class AdminResources(Resource):
-
-    @jwt_required()
-    @admin_required
+    # @jwt_required()
+    # @admin_required
     def post(self):
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-        is_admin = data.get('is_admin',True)
+        is_admin = data.get('is_admin', True)
 
-        if not username or not password or is_admin is None:
-            return {"Message": "Missing field Invalid"}, 400
+        if not username or not password:
+            return {"Message": "Missing required fields"}, 400
+
+        # Check if the username already exists
+        existing_user = AdminUser.query.filter_by(username=username).first()
+        if existing_user:
+            return {"Message": "Username already exists"}, 400
         
-        # hash password before creating the user
-        
+        # Hash password before creating the user
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
-        adminuser = AdminUser(username=username, password=hashed_password, is_admin=is_admin)
+        
+        admin_user = AdminUser(username=username, password=hashed_password, is_admin=is_admin)
 
         try:
-            db.session.add(adminuser)
+            db.session.add(admin_user)
             db.session.commit()
-            return {"Message": "Admin created successfully"}, 200
+            return {"Message": "Admin created successfully"}, 201
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback()  # Rollback in case of error
+            print(f"Error occurred: {str(e)}")  # Log the error for debugging
             return {"Message": f"An error occurred: {str(e)}"}, 500
-        
+
     def get(self):
         admin_users = AdminUser.query.all()
         return jsonify([admin_user.to_dict() for admin_user in admin_users])
-
 
     @jwt_required()
     @admin_required
     def put(self):
         data = request.get_json()
-
-        adminuser_id = data.get('id')
-        username =data.get('username')
+        
+        admin_user_id = data.get('id')
+        username = data.get('username')
         password = data.get('password')
         is_admin = data.get('is_admin')
 
-        if not adminuser_id:
-            return{"Message": "Missing field Invalid"}
+        if not admin_user_id:
+            return {"Message": "Missing required field: 'id'"}, 400
         
-        admin = AdminUser.query.get(adminuser_id)
-        if not admin:
-            return {"Message": " Admin Not found"}
+        admin_user = AdminUser.query.get(admin_user_id)
+        if not admin_user:
+            return {"Message": "Admin not found"}, 404
         
         if username:
-            admin.username = username
+            admin_user.username = username
         if password:
-            admin.password = bcrypt.generate_password_hash(password).decode("utf-8")
-        if is_admin:
-            admin.is_admin = is_admin
+            admin_user.password = bcrypt.generate_password_hash(password).decode("utf-8")
+        if is_admin is not None:  # Check for None to allow updates
+            admin_user.is_admin = is_admin
 
         try:
             db.session.commit()
-            return {"Message" : " Admin created sucessfuly " "admin"} , 200
-        except Exception as e:
-            db.session.rollback()
-            return {f"An error occurred {str(e)}"} , 500
-    @jwt_required()
-    @admin_required
-    def delete(self):
-        data = request.get_json()  # Get the JSON data from the request
-        adminuser_id = data.get('id')
-        
-        if not adminuser_id:
-            return {"Message": "Missing required field: 'id'"}, 400
-            
-        admin_user = AdminUser.query.get(adminuser_id)
-        
-        if not admin_user:  # Check if the user exists
-          return {"Message": "Admin user not found"}, 404 
-        
-        try:
-            db.session.delete(admin_user)  # Delete the user
-            db.session.commit()
-            return {"Message": f"Admin user with id {adminuser_id} deleted successfully"}, 200
+            return {"Message": "Admin updated successfully"}, 200
         except Exception as e:
             db.session.rollback()  # Rollback in case of error
             return {"Message": f"An error occurred: {str(e)}"}, 500
 
+    @jwt_required()
+    @admin_required
+    def delete(self):
+        data = request.get_json()
+        admin_user_id = data.get('id')
+        
+        if not admin_user_id:
+            return {"Message": "Missing required field: 'id'"}, 400
+            
+        admin_user = AdminUser.query.get(admin_user_id)
+        
+        if not admin_user:
+            return {"Message": "Admin user not found"}, 404 
+        
+        try:
+            db.session.delete(admin_user)  # Delete the user
+            db.session.commit()
+            return {"Message": f"Admin user with id {admin_user_id} deleted successfully"}, 200
+        except Exception as e:
+            db.session.rollback()  # Rollback in case of error
+            return {"Message": f"An error occurred: {str(e)}"}, 500
 
 api.add_resource(AdminResources, '/admin')
-
 
 class LoginResource(Resource):
     def post(self):
@@ -528,16 +389,26 @@ class LoginResource(Resource):
 
         if not username or not password:
             return {"Message": "Missing username or password"}, 400
-        
+
+        print(f"Attempting login for username: {username}")
+
         # Query the user by username
         admin_user = AdminUser.query.filter_by(username=username).first()
-        
-        if not admin_user and bcrypt.check_password_hash(admin_user.password,password):
-            # generate JWT tokens
 
-            access_token = create_access_token(identity = username)
-            return {"Message": "Login successfuly", "access_token": access_token} , 200
-        return{"message": "Invalid Credentials"} , 401
+        if admin_user is None:
+            print("User not found")
+            return {"Message": "Invalid Credentials"}, 401
+
+        print(f"Stored Hashed Password: {admin_user.password}")
+        print(f"Provided Password: {password}")
+
+        if bcrypt.check_password_hash(admin_user.password, password):
+            access_token = create_access_token(identity=username)
+            return {"Message": "Login successful", "access_token": access_token}, 200
+        
+        print("Invalid password")
+        return {"Message": "Invalid Credentials"}, 401
+    
 # Add resource to API
 api.add_resource(LoginResource, '/login')
 
